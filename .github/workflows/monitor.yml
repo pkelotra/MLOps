@@ -13,6 +13,9 @@ jobs:
       - run: pip install -r requirements.txt
       - id: drift
         continue-on-error: true
-        run: python scripts_check_drift.py
+        run: python scripts/check_drift.py
       - if: steps.drift.outcome == 'failure'
-        run: echo 'Drift detected. Connect this step to the retraining workflow after Person 1 integration.'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          event-type: retrain
+          client-payload: '{"reason": "drift_detected"}'

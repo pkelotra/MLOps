@@ -1,48 +1,75 @@
-from typing import Any
-import mlflow
-import pandas as pd
+"""
+Model manager — loads and serves the UnifiedServingPipeline artifact.
+
+Handles graceful failure when the artifact is not yet available (e.g. before
+training has been run). The /health endpoint reflects model readiness.
+"""
+
+import logging
+import os
+import pickle
+import time
+from typing import Optional
+
 from .config import settings
 
-class ModelManager:
-    def __init__(self):
-        self.model1 = None
-        self.model2 = None
-        self.model1_error = None
-        self.model2_error = None
-        mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
+logger = logging.getLogger(__name__)
 
-    def load(self):
+
+class ModelManager:
+    """Manages the lifecycle of the UnifiedServingPipeline artifact."""
+
+    def __init__(self):
+        self.pipeline = None
+        self.load_error: Optional[str] = None
+        self.load_time: Optional[float] = None
+
+    def load(self) -> None:
+        """Load the UnifiedServingPipeline from the configured pkl path."""
+        artifact_path = settings.model_artifact_path
+        if not os.path.exists(artifact_path):
+            self.load_error = f"Artifact not found at {artifact_path}. Run training pipeline first."
+            logger.warning(self.load_error)
+            return
+
         try:
-            self.model1 = mlflow.pyfunc.load_model(settings.model1_uri)
-            self.model1_error = None
+            start = time.time()
+            with open(artifact_path, "rb") as f:
+                self.pipeline = pickle.load(f)
+            self.load_time = round(time.time() - start, 3)
+            self.load_error = None
+            logger.info(
+                "UnifiedServingPipeline loaded from %s in %.3fs",
+                artifact_path, self.load_time,
+            )
         except Exception as exc:
-            self.model1 = None
-            self.model1_error = str(exc)
-        try:
-            self.model2 = mlflow.pyfunc.load_model(settings.model2_uri)
-            self.model2_error = None
-        except Exception as exc:
-            self.model2 = None
-            self.model2_error = str(exc)
+            self.pipeline = None
+            self.load_error = f"Failed to load artifact: {exc}"
+            logger.error(self.load_error)
+
+    def reload(self) -> None:
+        """Hot-reload the model artifact (e.g. after retraining/promotion)."""
+        logger.info("Reloading model artifact...")
+        self.pipeline = None
+        self.load_error = None
+        self.load()
 
     @property
-    def ready(self):
-        return self.model1 is not None and self.model2 is not None
+    def ready(self) -> bool:
+        return self.pipeline is not None
 
-    def predict(self, features: dict[str, Any]):
+    def predict(self, recent_24h_loads: list[float], timestamp_str: str) -> dict:
+        """
+        Delegates to UnifiedServingPipeline.predict().
+
+        Raises RuntimeError if models are not loaded.
+        """
         if not self.ready:
-            raise RuntimeError(f"Models are not ready. Model1 error={self.model1_error}; Model2 error={self.model2_error}")
-        model1_input = pd.DataFrame([features])
-        predicted_load = float(self.model1.predict(model1_input)[0])
-        model2_features = dict(features)
-        model2_features["predicted_load"] = predicted_load
-        result = self.model2.predict(pd.DataFrame([model2_features]))[0]
-        if isinstance(result, dict):
-            probability = float(result.get("peak_probability", result.get("probability", 0.0)))
-            is_peak = bool(result.get("is_peak", probability >= 0.5))
-        else:
-            probability = float(result)
-            is_peak = probability >= 0.5
-        return predicted_load, probability, is_peak
+            raise RuntimeError(
+                f"Model is not ready. Error: {self.load_error}"
+            )
+        return self.pipeline.predict(recent_24h_loads, timestamp_str)
 
+
+# Singleton instance used by the FastAPI application
 model_manager = ModelManager()

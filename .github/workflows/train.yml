@@ -1,6 +1,11 @@
 name: Training
 on:
   workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for retraining'
+        required: false
+        default: 'manual'
   repository_dispatch:
     types: [retrain]
 jobs:
@@ -11,6 +16,24 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - run: pip install -r requirements.txt
-      - env:
+
+      # Run training pipeline
+      - name: Train models
+        env:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-        run: python -m src.training.pipeline
+        run: python -m src.training.pipeline --config configs/config.yaml
+
+      # Evaluate candidate before promotion
+      - name: Evaluate candidate
+        run: python scripts/evaluate_candidate.py --artifact artifacts/serving_pipeline.pkl
+
+      # Register and promote if evaluation passed
+      - name: Register model
+        if: success()
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        run: python scripts/register_model.py --promote
+
+      # Run tests after training
+      - name: Post-training tests
+        run: PYTHONPATH=. pytest tests/ -q

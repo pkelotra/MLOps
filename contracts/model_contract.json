@@ -1,6 +1,59 @@
 {
   "version": "1.0",
-  "model_1": {"name": "electricity-load-forecaster", "alias": "champion", "output": {"name": "predicted_load", "type": "float", "unit": "kW"}},
-  "model_2": {"name": "electricity-peak-classifier", "alias": "champion", "input": {"required_model_1_output": "predicted_load"}, "output": {"peak_probability": "float", "is_peak": "boolean"}},
-  "api": {"endpoint": "POST /predict", "request_example": {"features": {}}, "response_example": {"predicted_load": 0.0, "peak_probability": 0.0, "is_peak": false}}
+  "serving_pipeline": {
+    "name": "electricity-serving-pipeline",
+    "alias": "champion",
+    "artifact": "artifacts/serving_pipeline.pkl",
+    "description": "UnifiedServingPipeline bundling Model 1 (load forecaster) and Model 2 (peak classifier)"
+  },
+  "model_1": {
+    "name": "electricity-load-forecaster",
+    "task": "regression",
+    "metric": "rmse",
+    "features": ["hour", "day_of_week", "lag_1", "lag_24", "rolling_mean_24h"],
+    "output": {"name": "predicted_load_kwh", "type": "float", "unit": "kWh"}
+  },
+  "model_2": {
+    "name": "electricity-peak-classifier",
+    "task": "classification",
+    "metric": "f1",
+    "features": ["predicted_load", "hour", "day_of_week", "rolling_mean_24h"],
+    "output": {"is_peak": "boolean", "peak_probability": "float"}
+  },
+  "api": {
+    "endpoints": {
+      "GET /health": "Liveness and model readiness check",
+      "GET /model-info": "Model metadata, pipeline type, threshold, and status",
+      "POST /predict": "Execute Model 1 -> Model 2 chained inference",
+      "POST /reload": "Hot-reload serving pipeline without downtime"
+    },
+    "request_schema": {
+      "client_id": "string",
+      "target_timestamp": "string (YYYY-MM-DD HH:MM:SS)",
+      "recent_24h_loads": "list[float] (exactly 24 values)"
+    },
+    "response_schema": {
+      "target_timestamp": "string",
+      "predicted_load_kwh": "float",
+      "is_peak": "boolean",
+      "peak_probability": "float",
+      "peak_threshold_kwh": "float"
+    },
+    "request_example": {
+      "client_id": "MT_200",
+      "target_timestamp": "2014-07-01 00:00:00",
+      "recent_24h_loads": [
+        312.4, 305.1, 298.6, 280.2, 275.0, 260.4, 255.8, 250.1,
+        270.3, 310.5, 340.2, 355.7, 360.1, 358.9, 345.6, 330.2,
+        335.8, 342.1, 360.4, 375.2, 380.5, 365.1, 340.9, 325.0
+      ]
+    },
+    "response_example": {
+      "target_timestamp": "2014-07-01 00:00:00",
+      "predicted_load_kwh": 392.31,
+      "is_peak": false,
+      "peak_probability": 0.0,
+      "peak_threshold_kwh": 1205.4
+    }
+  }
 }
