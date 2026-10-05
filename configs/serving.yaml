@@ -1,0 +1,12 @@
+models:
+  model1:
+    registered_name: electricity-load-forecaster
+    alias: champion
+  model2:
+    registered_name: electricity-peak-classifier
+    alias: champion
+quality_gates:
+  model1: {max_rmse: null, max_mae: null}
+  model2: {min_f1: null, min_recall: null}
+monitoring:
+  drift_threshold: 0.20
