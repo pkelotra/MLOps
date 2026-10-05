@@ -13,6 +13,6 @@ jobs:
           python-version: '3.11'
           cache: pip
       - run: pip install -r requirements.txt
-      - run: pytest -q
+      - run: PYTHONPATH=. pytest -q
       - run: python -m json.tool contracts/model_contract.json > /dev/null
       - run: docker build -f docker/Dockerfile.inference -t electricity-mlops-api:ci .
