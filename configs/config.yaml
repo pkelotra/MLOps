@@ -1,0 +1,21 @@
+# Configuration for Electricity Load Forecasting & Peak Detection Pipeline
+
+data:
+  raw_path: "UCIElectricity/Dataset/LD2011_2014.txt"
+  client_id: "MT_200"              # Target client to model (changeable via config)
+  resample_freq: "1h"              # Resample from 15-min to 1-hour intervals
+  start_date: "2012-01-01"         # Start after 2011 to skip onboarding zero-values
+  train_end: "2013-12-31 23:00:00" # 2 years of training data
+  val_end: "2014-06-30 23:00:00"   # 6 months of validation data
+  test_end: "2014-12-31 23:00:00"  # 6 months of final test evaluation
+
+automl:
+  time_budget_seconds: 30          # 30s per model keeps execution fast for rapid feedback
+  seed: 42
+
+peak_detection:
+  percentile_threshold: 0.90       # Top 10% load values define peak demand periods
+
+mlflow:
+  experiment_name: "electricity_mlops_pipeline"
+  tracking_uri: "sqlite:///mlflow.db"  # Local SQLite database for persistent tracking

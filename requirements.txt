@@ -1,0 +1,21 @@
+# FastAPI & Serving (Person 2)
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pydantic>=2.10.0
+httpx>=0.28.0
+python-dotenv>=1.0.0
+
+# Core Data & ML (Person 1)
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+lightgbm>=4.0.0
+xgboost>=2.0.0
+
+# AutoML Engine (Person 1)
+flaml>=2.1.0
+
+# MLOps Tracking & Testing
+mlflow>=2.10.0
+pyyaml>=6.0
+pytest>=7.0.0

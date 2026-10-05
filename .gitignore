@@ -1,0 +1,57 @@
+# ==============================================================================
+# Shared MLOps .gitignore (Person 1 + Person 2)
+# ==============================================================================
+
+# --- Environment & Credentials ---
+.env
+.env.local
+
+# --- Virtual Environments ---
+.venv/
+venv/
+ENV/
+env/
+
+# --- Python & Pytest Caches ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# --- MLflow Database, Runs & Local Caches ---
+mlruns/
+mlartifacts/
+*.db
+mlflow.db
+
+# --- Person 2 Serving & Logging Directories ---
+models/
+data/raw/
+data/processed/
+logs/
+*.log
+
+# --- Raw UCI Dataset (CRITICAL: 711MB file must never be committed) ---
+UCIElectricity/
+*.csv
+*.txt
+!requirements.txt
+
+# --- OS & IDE Metadata ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Temporary Setup Scripts ---
+setup_env.bat
+setup_env.ps1
+
+# --- Tracked Whitelist: Ensure Model Artifact is Preserved ---
+!artifacts/
+!artifacts/serving_pipeline.pkl
+
+# --- Documentation Markdown files (kept local or tracked as needed) ---
+PERSON_1_MLOPS_PLAN.md
+PIPELINE_FLOW_AND_HANDOFF.md
+PROJECT_DOCUMENTATION.md

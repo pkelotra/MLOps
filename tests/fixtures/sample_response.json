@@ -1,0 +1,7 @@
+{
+  "target_timestamp": "2014-07-01 00:00:00",
+  "predicted_load_kwh": 392.31,
+  "is_peak": false,
+  "peak_probability": 0.0,
+  "peak_threshold_kwh": 1205.4
+}
