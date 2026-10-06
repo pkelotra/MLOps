@@ -25,7 +25,8 @@ mlartifacts/
 mlflow.db
 
 # --- Person 2 Serving & Logging Directories ---
-models/
+/models/
+!src/models/
 data/raw/
 data/processed/
 logs/
